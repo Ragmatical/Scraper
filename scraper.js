@@ -1,14 +1,29 @@
 const puppeteer = require('puppeteer')
-var url = "https://naver.com"
+var mongoose = require('mongoose')
+var labelModel = require("./schema.js").getModel();
+
 
 
 async function scrapeSite(url) {
-	const browser = await puppeteer.launch();
+	const browser = await puppeteer.launch({headless: true});
 	const page = await browser.newPage();
 	await page.goto(url);
-    await page.screenshot({path: 'screenshot.png', fullPage: true});
+	const buffer = await page.screenshot({fullPage: true});
 	await browser.close();
-    return;
+	return  buffer;
 }
 
-scrapeSite(url)
+labelModel.find({image:{$exists:false}})
+	.exec(function(err, labels){
+			if(err){
+				console.log(err)
+				return
+			}
+			for(i=0; i<labels.length; i++){
+				var url = labels[i].url
+				var label = labels[i]
+				label.image = scrapeSite(url);
+				label.save();
+			}
+	}
+	)
