@@ -1,5 +1,6 @@
 var mongoose = require('mongoose');
-var model = mongoose.model('labels',new mongoose.Schema({
+
+var model = mongoose.model('labels', new mongoose.Schema({
     date: Date
     , url: String
     , label: String
@@ -7,6 +8,6 @@ var model = mongoose.model('labels',new mongoose.Schema({
     , text: String
 }));
 
-exports.getModel = function() {
-    return model
+exports.getModel = function(){
+    return  model
 }
