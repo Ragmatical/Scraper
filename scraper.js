@@ -15,38 +15,47 @@ var app = express()
 ;
 
 
+
 mongoose.connect(dbUri, function(err){
 	if (err){
 		return console.log(err)
 	}
+	console.log("Starting Process")
+	labelModel.find({}, async function(err, labels) {
+  if(err) {
+  		console.log("Found an error")
+  		console.log(err)
+  		return
+  	}
+  if(labels.length === 0) {
+    console.log("No new links found")
+    return
+  }
+	console.log("Found sites needing scraping, opening browser")
+	openBrowser(err, labels)
+	})
+})
 
-
- async function scrapeSite(url) {
-   const browser = await puppeteer.launch();
-   const page = await browser.newPage();
-   await page.goto(url);
-   const buffer = await page.screenshot({
-     fullPage: true
-   });
-   await browser.close();
-   return buffer;
- }
-console.log("label1")
-labelModel.find({}, async function(err, labels) {
-	console.log("label2")
-	if(err) {
-		console.log(err)
-		return
-	}
-	console.log("label3")
-		for (var i = 0; i < labels.length; i++) {
+async function openBrowser(err, labels){
+	const browser = await puppeteer.launch();
+	const page = await browser.newPage();
+	console.log("Opened the browser")
+	console.log("Starting for loop")
+		for (var i = 0; i < labels.length;) {
 			var label = labels[i]
 			var url = label.url
-			label.image = await scrapeSite(url);
+      console.log(url)
+			label.image = await scrapeSite(browser, page, url);
 			label.save();
-			console.log("label4")
+			console.log("Scraped "+ ++i +" site(s)")
 	}
-})
+  await browser.close()
+}
 
-
-})
+async function scrapeSite(browser, page, url) {
+	await page.goto(url);
+	const buffer = await page.screenshot({
+	  fullPage: true
+	});
+	return buffer;
+  }

@@ -1,95 +1,56 @@
-/*
-https://mrlera.wisen.space/strategy
+var express = require('express');
+var bodyParser = require('body-parser');
+var mongoose = require('mongoose')
+var labelModel = require('./schema.js').getModel()
+var http = require('http');
+var path = require('path');
+var fs = require('fs')
 
-TODO:
-1. Input keyword(s)
-2. Retrieve the json file from the network
-https://v2.sg.media-imdb.com/suggests/FIRSTLETTER_OF_KEYWORD/KEYWORD.json
-3. Filter out movies only (ID start with TT)
-4.  In the response extract ID (TT...)
-5. INSERT ID INTO: https://www.imdb.com/title/IDGOESHERE/reviews?ref_=tt_urv
+var app = express()
+    , dbUri = process.env. MONGODB_RUI || 'mongodb://127.0.0.1/knowledge'
+    , server = http.createServer(app)
+    , port = process.env.PORT ? parseInt(proces.env.PORT) : 8080;
+;
 
-*/
-const request = require('request');
-const puppeteer = require('puppeteer')
+function startServer() {
+  app.use(bodyParser.json({
+    limit: '16mb'
+  }))
+  app.use(express.static(path.join(__dirname, 'public')));
 
-var terms = ['knowledge','street','infinity']
-var searchUrls = terms.map(term =>
-    `https://v2.sg.media-imdb.com/suggests/${term[0]}/${term}.json`
-)
-var movieIds = [];
-var movieTitles = [];
-var responseReceivedCount = 0;
-var reviewUrls = [];
-var allReviews = [];
+  app.get('/', (req, res, next) => {
+    console.log(req.query)
+    var label = new labelModel({
+          date: new Date()
+        , url: req.query.url
+        , label: req.query.label
+        
+    });
+    label.save()
 
-function getReview(callback) {
-  var reviewUrl = searchUrls.pop()
-  var index = searchUrls.length
-  console.log("MAKE REQUEST FOR: " + reviewUrl)
-  request(reviewUrl, function (error, response, body) {
-    responseReceivedCount ++;
-    const term = terms[index];
-    const startStringToRemove = `imdb${term}({`
-    body = body.substring(startStringToRemove.length, body.length -1)
-    body = JSON.parse(body);
-    body.d.forEach(obj => {
-      if(obj.id.startsWith('tt') && !movieIds.includes(obj.id)) {
-        movieIds.push(obj.id);
-        movieTitles.push(obj.l);
-      }
-
-    })
-    console.log(responseReceivedCount)
-    if(searchUrls.length === 0) {
-      reviewUrls = movieIds.map((id, index) => {
-        const url = `https://www.imdb.com/title/${id}/reviews?ref_=tt_ov_rt`
-
-        return {
-          url: url
-          , title: movieTitles[index]
-        }
-      })
-        console.log(reviewUrls)
-        callback(reviewUrls)
-    } else{
-      getReview(callback)
-    }
-  }) 
-}
-
-function getReviewUrls(callback) {
-  getReview(callback)
-}
-
-async function getReviews(divs){
-  var ratings = divs.map(item => {
-    return {
-      rating: parseInt((item.querySelector('.ipl-ratings-bar') || {}).innerText)
-      , review: item.querySelector('.content').textContent
-    }
+    res.redirect(req.query.url)
   });
-  return ratings;
 
-}
 
-async function grabReviews(page, item){
-  await page.$$eval('.lister-item-content', getReviews).then(function (output){
-    allReviews = allReviews.concat(output);
+  server.on('listening', () => {
+
+    /* Determining what the server is listening for */
+    var addr = server.address(),
+      bind = typeof addr === 'string' ?
+      'pipe ' + addr :
+      'port ' + addr.port;
+
+    /* Outputs to the console that the webserver is ready to start listenting to requests */
+    console.log('Listening on ' + bind);
   });
-  console.log(allReviews)
-}
 
-async function scrapeReviews(reviewUrls){
-  const browser = await puppeteer.launch();
-  const page = await browser.newPage();
-  for (var i = 0; i < reviewUrls.length; i++){
-    var item = reviewUrls[i];
-    console.log(item);
-    await page.goto(item.url)
-    await grabReviews(page, item)
-  }
-  await browser.close();
+  /* Tells the server to start listening to requests from defined port */
+  server.listen(port);
 }
+startServer()
 
-getReviewUrls(scrapeReviews);
+mongoose.connect(dbUri, function(err){
+    if (err){
+        return console.log(err)
+    }
+})
