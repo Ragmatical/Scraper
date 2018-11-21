@@ -21,7 +21,7 @@ mongoose.connect(dbUri, function(err){
 		return console.log(err)
 	}
 	console.log("Starting Process")
-	labelModel.find({}, async function(err, labels) {
+	labelModel.find({image:null}, async function(err, labels) {
   if(err) {
   		console.log("Found an error")
   		console.log(err)
