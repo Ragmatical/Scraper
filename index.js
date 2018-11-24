@@ -9,7 +9,7 @@ var fs = require('fs')
 var app = express()
     , dbUri = process.env. MONGODB_RUI || 'mongodb://127.0.0.1/knowledge'
     , server = http.createServer(app)
-    , port = process.env.PORT ? parseInt(proces.env.PORT) : 8080;
+    , port = process.env.PORT ? parseInt(proces.env.PORT) : 27018;
 ;
 
 function startServer() {
@@ -24,7 +24,7 @@ function startServer() {
           date: new Date()
         , url: req.query.url
         , label: req.query.label
-        
+
     });
     label.save()
 
