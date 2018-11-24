@@ -45,14 +45,23 @@ async function openBrowser(err, labels){
 			var label = labels[i]
 			var url = label.url
       console.log(url)
-			label.image = await scrapeSite(browser, page, url);
+			label.image = await scrapeImage(browser, page, url);
+      label.text = scrapeText(browser,page,url)
 			label.save();
 			console.log("Scraped "+ ++i +" site(s)")
 	}
   await browser.close()
 }
 
-async function scrapeSite(browser, page, url) {
+async function scrapeText(browser,page, url) {
+  await page.goto(url)
+  const result = await page.evaluate(() => {
+    return document.querySelector('html').innerHTML
+  })
+  return result;
+}
+
+async function scrapeImage(browser, page, url) {
 	await page.goto(url);
 	const buffer = await page.screenshot({
 	  fullPage: true
